@@ -1,0 +1,264 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<!--[if IE 8]> <html lang="en" class="ie8"> <![endif]-->
+<!--[if IE 9]> <html lang="en" class="ie9"> <![endif]-->
+<!--[if !IE]><!--> <html lang="en"> <!--<![endif]-->
+<head>
+    <title>echarts案例</title>
+
+    <!-- Meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="86320">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <style>
+        .conn{
+            width: 1000px;
+            line-height: 30px;
+            margin: 0 auto 20px auto;
+            padding: 0 2px;
+            clear: both;
+            background-color: #c0c0c0;
+        }
+        #echartsJs{
+            width: 1000px;
+            height: 500px;
+        }
+        .echartsJs{
+            margin:0 auto;
+        }
+        #username_label.labels{
+            width: 400px;
+        }
+        .labels{
+            display: inline-block;
+            width: 200px;
+        }
+        #username{
+            display: block;
+            width: 100%;
+            height: 26px;
+            text-indent: 2px;
+        }
+        #time_label{
+            float: right;
+            width: auto;
+            height:30px;
+        }
+        .input_style{
+            display: inline-block;
+            width: 200px;
+            height: 26px;
+            text-indent: 2px;
+        }
+        #loadgif{
+            position: absolute;
+            left:0;
+            right:0;
+            top:0;
+            bottom:0;
+            margin: auto;
+        }
+    </style>
+
+</head>
+
+
+
+<body class="index-page" data-page="index">
+    <h2 style="text-align: center;">测试</h2>
+
+    <div class="conn" >
+        <form id="searchform" action="/operateTSDB/search/" method="get">
+            {% csrf_token %}
+            <div style="clear: both;">
+                <label for="username" id="username_label" class="labels">
+                    <input type="text" name="username" value="" placeholder="输入查找人的姓名" id="username">
+                </label>
+
+                <label for="" id="time_label" class="labels">
+<input type="datetime-local" name="start" value="" placeholder="开始时间" id="start_time" class="input_style" >
+                    --
+<input type="datetime-local" name="end" value="" placeholder="截止时间" id="end_time" class="input_style" >
+                </label>
+            </div>
+
+            <button type="button" id="btn_search" style="display:block;width: 60px;height: 30px;margin: 0 auto;cursor: pointer;">搜索</button>
+
+
+        </form>
+
+        <p id="errors"></p>
+    </div>
+
+    <div id="echartsJs" class="echartsJs">
+        <img id="loadgif" alt="加载中..." src="/static/images/ajax_process.gif"/>
+    </div>
+
+<!-- JS Global Compulsory -->
+<script type="text/javascript" src="/static/plugins/jquery.js"></script>
+<script type="text/javascript" src="/static/plugins/esl.js"></script>
+<script type="text/javascript" src="/static/plugins/echarts-all.js"></script>
+<script type="text/javascript" src="/static/plugins/echarts.js"></script>
+
+
+    <script>
+        $(function () {
+            $("#loadgif").hide();
+
+        {# 时间戳转换为日期方法 #}
+        function retusn_timestamp(timestamps){
+            var date_time  = new Date(timestamps*1000);
+            var Year = date_time.getFullYear() + '/';
+            var Month = (date_time.getMonth()+1 < 10 ? '0'+(date_time.getMonth()+1) : date_time.getMonth()+1) + '/';
+            var Day = date_time.getDate() + ' ';
+            var Hours = date_time.getHours() + ':';
+            var mins = (date_time.getMinutes() < 10 ? '0'+(date_time.getMinutes()) : date_time.getMinutes());
+            return Year+Month+Day+Hours+mins;
+        }
+
+        var myChar = echarts.init(document.getElementById('echartsJs'));
+
+        $(window).on('resize',function(){
+            myChar.resize();
+        });
+
+        $('#btn_search').on('click', function () {
+            $("#loadgif").show();
+            var $username = $('#username').val();
+            var $start_time = $('#start_time').val();
+            var $end_time = $('#end_time').val();
+            if($username == ''){
+                $('#errors').html('请输入查询名称');
+                return false;
+            }
+
+            var data = {'username':$username, 'start':$start_time, 'end':$end_time};
+            $.ajax({
+                type:'get',
+                url:'/operateTSDB/search/',
+                data:data,
+                dataType: 'json',
+                async: true,
+                success : function (data) {
+
+                    $("#loadgif").hide();
+
+                    {# 存放时间戳值 #}
+                    var list_map = new Array();
+                    {# X轴显示时间日期 #}
+                    var weeks_Array = new Array();
+                    {# Y轴最大值 #}
+                    var list_map_send = new Array();
+                    var list_map_receive = new Array();
+                    var legendArr = new Array();
+
+                    for(var i in data){
+                        legendArr.push(i);
+                         console.log('key的数据是' + data[i]);
+
+                        var new_data = JSON.parse(data[i]);
+                        if(i === "send"){
+                            console.log(i + '---' + data[i]);
+                            for (var j in new_data){
+                                list_map.push(parseInt(j));
+{#                                list_map_send.push(parseInt(new_data[j]));#}
+                                list_map_send.push(parseInt(new_data[j]/(1024*1024)).toFixed(2));
+                            }
+                        }else if (i === "receive"){
+                            console.log(i + '---' + data[i]);
+                            for (var j in new_data){
+{#                                list_map_receive.push(parseInt(new_data[j]));#}
+                                list_map_receive.push(parseInt(new_data[j]/(1024*1024)).toFixed(2));
+                            }
+                        }
+
+                    }
+                    console.log('list_map_send数据是' + list_map_send);
+                    console.log('list_map_receive数据是' + list_map_receive);
+
+
+                    {# X轴的最大value值 #}
+                    var new_data_list = list_map_send.concat(list_map_receive);
+                    console.log('最新组合的数据数据是' + new_data_list);
+                    var max_length = Math.max.apply(null, new_data_list);
+                    console.log('最大值是' + max_length);
+
+                    for(var ins in list_map){
+                        var news_times = retusn_timestamp(list_map[ins]);
+                        weeks_Array.push(news_times);
+                    }
+
+                    for(var m=0;m<weeks_Array.length;m++){
+
+                        var option = {
+                            tooltip : {
+                                trigger: 'axis'
+                            },
+                            legend: {
+                                data:['send上行线', 'receive下行线']
+                            },
+                            calculable : true,
+                            dataZoom : {
+                                show : true,
+                                realtime : true,
+                                start : 0,
+                                end : 30,
+                                handleSize: 0,//滑动条的 左右2个滑动条的大小
+                                height: 8,//组件高度
+                                left: 50, //左边的距离
+                                right: 40,//右边的距离
+                                bottom: 26,//右边的距离
+                                handleColor: '#8A2BE2' //h滑动图标的颜色
+                            },
+                            xAxis :[
+                                {
+                                    type : 'category',
+                                    boundaryGap : false,
+                                    data : weeks_Array,
+                                    axisLabel:{
+                                        interval:2
+                                    }
+                                }
+                            ],
+                            yAxis :
+                                {
+                                    type : 'value',
+                                    min: 0,
+                                    max: max_length + 50,
+                                    name:'M'
+
+                                },
+                            series :
+                                [
+                                {
+                                    name:'send上行线',
+                                    type:'line',
+                                    stack: 'send总量',
+                                    data:list_map_send
+                                },
+                                {
+                                    name:'receive下行线',
+                                    type:'line',
+                                    stack: 'receive总量',
+                                    data:list_map_receive
+                                }
+                            ]
+                        };
+                       {# 清空画布 #}
+                        myChar.clear();
+                        myChar.setOption(option);
+                    }
+
+                },
+                error: function (error) {
+                    $('.echartsJs').html('数据库数据查询失误');
+                }
+            })
+
+        });
+    });
+
+    </script>

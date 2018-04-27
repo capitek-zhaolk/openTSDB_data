@@ -1,0 +1,178 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<!--[if IE 8]> <html lang="en" class="ie8"> <![endif]-->
+<!--[if IE 9]> <html lang="en" class="ie9"> <![endif]-->
+<!--[if !IE]><!--> <html lang="en"> <!--<![endif]-->
+<head>
+    <title>echarts案例</title>
+
+    <!-- Meta -->
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="86320">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <style>
+        .conn{
+            width: 1000px;
+            line-height: 30px;
+            margin: 0 auto 20px auto;
+            padding: 0 2px;
+            clear: both;
+            background-color: #c0c0c0;
+        }
+        #echartsJs{
+            width: 1000px;
+            height: 500px;
+        }
+        .echartsJs{
+            margin:0 auto;
+        }
+        #username_label.labels{
+            width: 400px;
+        }
+        .labels{
+            display: inline-block;
+            width: 200px;
+        }
+        #username{
+            display: block;
+            width: 100%;
+            height: 26px;
+            text-indent: 2px;
+        }
+        #time_label{
+            float: right;
+            width: auto;
+            height:30px;
+        }
+        .input_style{
+            display: inline-block;
+            width: 200px;
+            height: 26px;
+            text-indent: 2px;
+        }
+        #loadgif{
+            position: absolute;
+            left:0;
+            right:0;
+            top:0;
+            bottom:0;
+            margin: auto;
+        }
+    </style>
+
+</head>
+
+
+
+<body class="index-page" data-page="index">
+    <h2 style="text-align: center;">测试</h2>
+
+    <div class="conn" >
+        <form id="searchform" action="/operateTSDB/search/" method="get">
+            {% csrf_token %}
+            <div style="clear: both;">
+                <label for="username" id="username_label" class="labels">
+                    <input type="text" name="username" value="" placeholder="输入查找人的姓名" id="username">
+                </label>
+
+                <label for="" id="time_label" class="labels">
+<input type="datetime-local" name="start" value="" placeholder="开始时间" id="start_time" class="input_style" >
+                    --
+<input type="datetime-local" name="end" value="" placeholder="截止时间" id="end_time" class="input_style" >
+                </label>
+            </div>
+
+            <button type="button" id="btn_search" style="display:block;width: 60px;height: 30px;margin: 0 auto;cursor: pointer;">搜索</button>
+
+
+        </form>
+
+        <p id="errors"></p>
+    </div>
+
+    <div id="echartsJs" class="echartsJs">
+        <img id="loadgif" alt="加载中..." src="/static/images/ajax_process.gif"/>
+    </div>
+
+<!-- JS Global Compulsory -->
+<script type="text/javascript" src="/static/plugins/jquery.js"></script>
+<script type="text/javascript" src="/static/plugins/esl.js"></script>
+<script type="text/javascript" src="/static/plugins/echarts-all.js"></script>
+<script type="text/javascript" src="/static/plugins/echarts.js"></script>
+
+
+    <script type="text/javascript">
+        //初始化echarts实例
+        var myChart = echarts.init(document.getElementById('echartsJs'));
+        var base = + new Date(2017,3,8);
+        console.log('base数据是' + base);
+        var oneDay = 24*3600*1000;
+        console.log('oneDay数据是' + oneDay);
+        var date = [];
+        var data = [Math.random()*150];
+        console.log('data数据是' + data);
+        var now = new Date(base);
+        var day = 30;
+        function addData(shift){
+            now = [now.getFullYear(),now.getMonth()+1,now.getDate()].join('/');
+            console.log('now数据是' + now);
+            date.push(now);
+            console.log('date数据是' + date);
+            data.push((Math.random()-0.5)*10+data[data.length-1]);
+            console.log('最新的date数据是' + date);
+            if (shift) {
+                date.shift();
+                data.shift();
+            }
+            now = new Date(+new Date(now)+oneDay);
+            console.log('最新的now数据是' + now);
+        }
+
+        for (var i = 0; i < day; i++) {
+            addData();
+        }
+        //设置图标配置项
+        myChart.setOption({
+            title:{
+                text:'ECharts 30天内数据实时更新'
+            },
+            xAxis:{
+                type:"category",
+                boundaryGap:false,
+                data:date
+            },
+            yAxis:{
+                boundaryGap:[0,'100%'],
+                type:'value'
+            },
+            series:[{
+                name:'成交',
+                type:'line',
+                smooth:true, //数据光滑过度
+                symbol:'none', //下一个数据点
+                stack:'a',
+                areaStyle:{
+                    normal:{
+                        color:'red'
+                    }
+                },
+                data:data
+            }]
+        });
+        setInterval(function(){
+            addData(true);
+            myChart.setOption({
+                xAxis:{
+                    data:date
+                },
+                series:[{
+                    name:'成交',
+                    data:data
+                }]
+            });
+        },3000)
+
+    </script>
