@@ -21,6 +21,7 @@ import json
 import sys
 import time
 
+# 每隔多长时间执行一次生产者方法
 def timeSleep(hours, mins, secs):
     return hours * 3600 + mins * 60 + secs
 
