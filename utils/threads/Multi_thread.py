@@ -9,7 +9,7 @@
 
 @Software : PyCharm
 
-@file: opentsdb_duoxiancheng.py
+@file: Multi_thread.py
 
 @time: 2018/5/8/008 8:36
 
@@ -65,15 +65,15 @@ if '__main__' == __name__:
     start_time = time.time()
 
     content = []
-    total_nums = 1000
+    total_nums = 10000
     a = int(time.time())
     for ins in range(1, total_nums+1):
         json = {
             "metric": "sys.batch.test.mutileThreads",
             "timestamp": a,
-            "value": math.sin(ins) + 0.205,
+            "value": math.sin(ins) + 0.25,
             "tags": {
-                "name": "zhaolk_51"
+                "name": "zhaolk_43"
             }
         }
         a += 0.5
@@ -83,8 +83,6 @@ if '__main__' == __name__:
 
     # thread_nums = 10
     thread_nums = 20
-
-
     threads = []
     all_count = 0
     for ins in range(thread_nums):
