@@ -49,6 +49,7 @@ class SignleThreads:
         return_list.append(r.text)
         # end_time_res = time.time()
         # res_times.append(end_time_res - start_time_res)
+        # print r.text
         return r.text, self.count
 
 
@@ -60,25 +61,28 @@ def _run(nums):
     failed_nums = 0
     json_list = []
     _line = 100
+    unit_time = 1 # 单位时间
+
+    # 批量插入最大数
+    lists_nums = 78
     global stats, end
 
     stats = time.time()
     a = int(time.time())
-    _starts = time.time()
-    # print u'start time {0}'.format(_starts)
-    a = 1526400000
+    stat_one = time.time()
+    print 'start time {0}'.format(stat_one)
     for i in xrange(1, nums + 1):
         json = {
             "metric": "singleThreads",
             "timestamp": a,
-            "value": 1111,
+            "value": 22,
             "tags": {
-                "username": "zhaolk_14"
+                "username": "zhaolk_6"
             }
         }
         a += 1
         json_list.append(json)
-        if len(json_list) == 50:
+        if len(json_list) == lists_nums:
             _start_hu = time.time()
             results = SignleThreads(json_list)
             results = results.sendJson()
@@ -86,17 +90,28 @@ def _run(nums):
             _end_hu = time.time()
 
             if totalss % _line == 0:
-                print u'每调用Http Post {0}次， 需耗时{1}秒'.format(_line, (_end_hu-_start_hu)*_line)
+                _write('每调用Http Post {0}次， 需耗时{1}秒'.format(_line, (_end_hu-_start_hu)*_line))
+                # print u'每调用Http Post {0}次， 需耗时{1}秒'.format(_line, (_end_hu-_start_hu)*_line)
                 _start_hu = _end_hu
-
             new_result.append(results)
             json_list = []
 
-        _ends = time.time()
-        if _ends - _starts >= 1:
-            print u'程序总共运行了{0}'.format(_ends - _starts)
-            break
+            # 在1秒钟之内数据会写入数据库多少次
+            end_one = time.time()
+            if end_one - stat_one >= 1:
+                _write('每{0}秒钟，调用Http Post {1}次, 写入数据量为{2}'.format(unit_time, totalss, totalss*lists_nums))
+                # print u'每{0}秒钟，调用Http Post {1}次, 写入数据量为{2}'.format(unit_time, totalss, totalss*lists_nums)
+                stat_one = end_one
+                totalss = 0
+                break
 
+
+
+    # 当数据无法组合成一个完整的list时
+    results = SignleThreads(json_list)
+    results = results.sendJson()
+    new_result.append(results)
+    json_list = []
 
     for ins in range(len(new_result)):
         new_ = new_result[ins][0]
@@ -116,9 +131,17 @@ def _run(nums):
     print('Total data %d, Send %d data use times %f sec, success %d 次 , failed %d 次 ' % (nums, success_nums, end - stats, success_nums, failed_nums))
 
 
+# print 打屏改换为写入文件
+def _write(info):
+    fileLog = 'single_print_info.conf'
+    demo = open(fileLog,'a+')
+    demo.write(info+'\n')
+    demo.close()
 
 if __name__ == '__main__':
     nums = 50000
+
+    # _run(nums)
 
     while True:
         _run(nums)
