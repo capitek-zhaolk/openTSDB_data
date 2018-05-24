@@ -31,7 +31,7 @@ import simplejson
 
 
 # list保存响应时间
-# res_times=[]
+res_times=[]
 
 # 数据库返回success、failed
 return_list = []
@@ -42,13 +42,13 @@ class SignleThreads:
         self.content = content
 
     def sendJson(self):
-        # start_time_res = time.time()
+        start_time_res = time.time()
         s = requests.Session()
         r = s.post("http://172.17.0.239:4242/api/put?details", json=self.content)
         self.count += 1
         return_list.append(r.text)
-        # end_time_res = time.time()
-        # res_times.append(end_time_res - start_time_res)
+        end_time_res = time.time()
+        res_times.append(end_time_res - start_time_res)
         # print r.text
         return r.text, self.count
 
@@ -70,6 +70,7 @@ def _run(nums):
     stats = time.time()
     a = int(time.time())
     stat_one = time.time()
+    _write('------------------------------------start-------------------------------------------\n\n\n')
     print 'start time {0}'.format(stat_one)
     for i in xrange(1, nums + 1):
         json = {
@@ -96,10 +97,10 @@ def _run(nums):
             new_result.append(results)
             json_list = []
 
-            # 在1秒钟之内数据会写入数据库多少次
+            # 在1秒钟内调用Http Post接口次数
             end_one = time.time()
             if end_one - stat_one >= 1:
-                _write('每{0}秒钟，调用Http Post {1}次, 写入数据量为{2}'.format(unit_time, totalss, totalss*lists_nums))
+                _write('每{0}秒钟，调用Http Post {1}次, 写入数据量为{2}条'.format(unit_time, totalss, totalss*lists_nums))
                 # print u'每{0}秒钟，调用Http Post {1}次, 写入数据量为{2}'.format(unit_time, totalss, totalss*lists_nums)
                 stat_one = end_one
                 totalss = 0
@@ -108,10 +109,13 @@ def _run(nums):
 
 
     # 当数据无法组合成一个完整的list时
-    results = SignleThreads(json_list)
-    results = results.sendJson()
-    new_result.append(results)
-    json_list = []
+    if len(json_list):
+        results = SignleThreads(json_list)
+        results = results.sendJson()
+        new_result.append(results)
+        json_list = []
+    else:
+        pass
 
     for ins in range(len(new_result)):
         new_ = new_result[ins][0]
@@ -126,9 +130,15 @@ def _run(nums):
     for ins in range(len(new_result)):
         totals += new_result[ins][1]
     end = time.time()
-    print u'总共访问HTTP Post方法{0}次'.format(totals)
 
-    print('Total data %d, Send %d data use times %f sec, success %d 次 , failed %d 次 ' % (nums, success_nums, end - stats, success_nums, failed_nums))
+    _write('在{0}秒内，一共访问HTTP Post方法{1}次，平均响应时间为{2}秒'.format(end - stats, totals, sum(res_times)/len(res_times) ))
+    print u'在{0}秒内，一共访问HTTP Post方法{1}次，平均响应时间为{2}秒'.format(end - stats, totals, sum(res_times)/len(res_times) )
+
+    print 'Total data %d, Send %d data use times %f sec, success %d 次 , failed %d 次 ' % (nums, success_nums, end - stats, success_nums, failed_nums)
+    _write('Total data %d, Send %d data use times %f sec, success %d 次 , failed %d 次 ' % (nums, success_nums, end - stats, success_nums, failed_nums))
+
+    _write('------------------------------------end-------------------------------------------\n\n\n')
+
 
 
 # print 打屏改换为写入文件
@@ -139,7 +149,7 @@ def _write(info):
     demo.close()
 
 if __name__ == '__main__':
-    nums = 50000
+    nums = 100000
 
     # _run(nums)
 

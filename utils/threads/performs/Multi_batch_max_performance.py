@@ -28,67 +28,76 @@ res_times=[]
 # 数据库返回success、failed
 return_list = []
 
+
 class ThreadCuts(threading.Thread):
-    def __init__(self, content, theradname):
+    def __init__(self, content, theradname, thread_nums):
         threading.Thread.__init__(self, name=theradname)
         self.__running = threading.Event() # 停止多线程的标识
         self.content = content
+        self.thread_nums = thread_nums
         self.count = 0
         self.counts = 0
 
     def sendJson(self, c):
-        # start_time_res = time.time()
         s = requests.Session()
+        start_time_res = time.time()
         r = s.post("http://172.17.0.239:4242/api/put?details", json=c)
+        end_time_res = time.time()
         return_list.append(r.text)
-        # end_time_res = time.time()
-        # res_times.append(end_time_res - start_time_res)
-
+        res_times.append(end_time_res - start_time_res)
+        # print r.text
         return r.text
 
     def run(self):
         for ins in xrange(len(self.content)):
-            _start = time.time()
+            start_ = time.time()
             self.sendJson(self.content[ins])
+            # print '线程名称{0}'.format(self.name)
             self.count += 1
             self.counts += 1
-            _end = time.time()
+            end_ = time.time()
+
             if self.counts % 100 == 0:
-                print u'{0} -- 每调用Http Post接口{1}次， 需耗时{2}'.format(self.name, self.counts, (_end - _start)*20)
+                # print u'每调用Http Post方法{0}次，需耗时{1}秒'.format(100, (end_ - start_)*thread_nums)
+                _write('每调用Http Post方法{0}次，需耗时{1}秒'.format(100, (end_ - start_)*thread_nums))
                 self.counts = 0
+                start_ = end_
+
+
 
         # global threadLock
-
+        #
         # while True:
-
-            # threadLock.acquire()
-            # length = len(self.content)
-            # if length > 0:
-            #     tmp = self.content.pop()
-            #     _start = time.time()
-            #     self.sendJson(tmp)
-            #     self.count += 1
-            #     self.counts += 1
-            #     _end = time.time()
-            #     # print '线程是{0} 数据是{1}'.format(self.name, self.count)
-            #     if self.counts % 100 == 0:
-            #         print '{0} -- 每调用Http Post接口{1}次， 需耗时{2}'.format(self.name, self.counts, (_end - _start)*100)
-            #         self.counts = 0
-            #     threadLock.release()
-            # else:
-            #     threadLock.release()
-            #     break
+        #     threadLock.acquire()
+        #     length = len(self.content)
+        #     if length > 0:
+        #         tmp = self.content.pop()
+        #         _start = time.time()
+        #         self.sendJson(tmp)
+        #         self.count += 1
+        #         self.counts += 1
+        #         _end = time.time()
+        #         # print '线程是{0} 数据是{1}'.format(self.name, self.count)
+        #         # if self.counts % 100 == 0:
+        #         #     print '{0} -- 每调用Http Post接口{1}次， 需耗时{2}'.format(self.name, self.counts, (_end - _start)*100)
+        #         #     self.counts = 0
+        #         threadLock.release()
+        #     else:
+        #         threadLock.release()
+        #         break
 
 def _run(thread_nums, content):
     threads = []
     all_count = 0
+    totalss = 0
     all_time = 1
+    _line = 100
     now_time = time.time()
 
     # 创建线程
     try:
         for ins in range(1, thread_nums + 1):
-            thread = ThreadCuts(content, 'Threadname{0}'.format(ins))
+            thread = ThreadCuts(content, 'Threadname{0}'.format(ins), thread_nums)
             threads.append(thread)
     except Exception as e:
         print e
@@ -100,15 +109,11 @@ def _run(thread_nums, content):
             threads[x].start()
 
         for y in range(len(threads)):
-            # ss = time.time()
-            # print 'start:{0}'.format(ss)
             threads[y].join()
-            # ee = time.time()
-            # print 'end:{0}'.format(ee)
-            # print 'all_co:{0}'.format(ee - ss)
 
         for xx in threads:
             all_count += xx.count
+            totalss += xx.counts
 
     except Exception as e:
         print e
@@ -116,38 +121,48 @@ def _run(thread_nums, content):
 
     return all_count
 
-if '__main__' == __name__:
+# print 打屏改换为写入文件
+def _write(info):
+    fileLog = 'multi_print_info.conf'
+    demo = open(fileLog,'a+')
+    demo.write(info+'\n')
+    demo.close()
+
+def fun_multi(total_nums, thread_nums):
     start_time = time.time()
     content = []
+    # json_list批量数据长度
+    lists_nums_ = 66
+    unit_time = 1 # 单位时间
 
     json_list = []
-    total_nums = 40000
     a = int(time.time())
-    for ins in range(1, total_nums+1):
+    # a = 1527151531
+    for ins in xrange(1, total_nums+1):
         json = {
             "metric": "mutileThreads",
             "timestamp": a,
-            "value": math.sin(ins) + 0.9,
+            "value": math.sin(ins) + 1,
             "tags": {
-                "name": "zhaolk_11"
+                "name": "mutile0002"
             }
         }
-        a += 0.5
+        a += 0.2
         json_list.append(json)
-        if len(json_list) == 50:
+        if len(json_list) == lists_nums_:
             content.append(json_list)
             json_list = []
 
+    # 剩余的json_list
+    content.append(json_list)
+    json_list = []
 
-    thread_nums = 2
+    # threadLock = threading.Lock()
 
-    threadLock = threading.Lock()
-
+    _write('------------------------------------start-------------------------------------------\n\n\n')
 
     all_count = _run(thread_nums, content)
 
-    single_success_nums = 0
-    single_failed_nums = 0
     success_nums = 0
     failed_nums = 0
 
@@ -155,17 +170,33 @@ if '__main__' == __name__:
         resu = return_list[xxx].encode('utf-8')
         for k, v in eval(resu).items():
             if k == 'success':
-                single_success_nums = int(v)
                 success_nums += int(v)
             if k == 'failed':
-                single_failed_nums = int(v)
                 failed_nums += int(v)
 
     end_time = time.time()
 
-    # print '在{0}秒内，一共访问HTTP Post方法{1}次，Request/Second {2}次/sec，平均响应时间是{3} sec'.format(end_time-start_time, all_count, int(all_count / (end_time-start_time)), sum(res_times)/len(res_times))
-    print '{0} thread，Total data {1}，time consuming {2} sec'.format(thread_nums, total_nums, (end_time-start_time)/thread_nums)
-    print 'success {0}次 ， failed {1}次'.format(success_nums, failed_nums)
+    _write('在{0}秒内，一共访问HTTP Post方法{1}次，Request/Second {2}次/秒，平均响应时间为{3}秒'.format(end_time - start_time, all_count, int(all_count / (end_time-start_time)), sum(res_times)/len(res_times)))
+    _write('{0} thread，Total data {1}，time consuming {2} sec，每秒可以写入{3}条数据'.format(thread_nums, total_nums, (end_time-start_time)/thread_nums, int(total_nums/((end_time-start_time)/thread_nums))))
+    _write('success {0}次 ， failed {1}次'.format(success_nums, failed_nums))
+
+    print u'在{0}秒内，一共访问HTTP Post方法{1}次，Request/Second {2}次/秒，平均响应时间为{3}秒'.format(end_time - start_time, all_count, int(all_count / (end_time-start_time)), sum(res_times)/len(res_times))
+    print u'{0} thread，Total data {1}，time consuming {2} sec，每秒可以写入{3}条数据'.format(thread_nums, total_nums, (end_time-start_time)/thread_nums, int(total_nums/((end_time-start_time)/thread_nums)))
+    print u'success {0}次 ， failed {1}次'.format(success_nums, failed_nums)
+
+    _write('------------------------------------end-------------------------------------------\n\n\n')
 
 
-    print '一共执行了{0}'.format(all_count)
+
+if __name__ == '__main__':
+
+    # 线程数
+    thread_nums = 10
+    # 数据数量
+    total_nums = 100000
+    fun_multi(total_nums, thread_nums)
+
+
+
+
+
